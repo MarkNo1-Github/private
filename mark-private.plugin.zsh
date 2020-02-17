@@ -31,6 +31,37 @@ function mark-decode() {
   use_secret_to_decrypt  $filecry  ${filecry/.enc/} $filecry.secret
 }
 
+
+: 'Encryption Local'
+function mark-encode-local() {
+  file=$1
+  generate_secret $MARK_ECPR $MARK_ECPU $file.secret
+  use_secret_to_encrypt $file $file.secret
+  generate_hmac $file.enc $file.secret.hmac $file.secret
+  mark-cleanup
+}
+
+
+: 'Decryption Local'
+function mark-decode-local() {
+  filecry=$1
+  generate_secret $MARK_ECPR $MARK_ECPU ${filecry}.secret
+  # compare hmac
+  use_secret_to_decrypt  $filecry  ${filecry/.enc/} ${filecry}.secret
+  mark-cleanup
+}
+
+function mark-cleanup(){
+  for entry in ./*
+  do
+    if [[ $entry == *".secret"* ]]; then
+      rm -rf $entry
+    fi
+  done
+}
+
+
+
 function mark-config() {
   if [ ! -d  "$HOME/$MARK_FEC" ]; then
     mkdir $HOME/$MARK_FEC
@@ -100,5 +131,6 @@ function Mark-Load-Configuration(){
     echo "[private-mark]: Run $ mark-config  $emoji[dizzy_face]"
   fi
 }
+
 
 Mark-Load-Configuration
