@@ -8,6 +8,8 @@
 Usage:
       mark-encode
       mark-decode
+      mark-encode-local
+      mark-decode-local
 ------------------------------------------------------------------------------
 '
 
@@ -35,10 +37,15 @@ function mark-decode() {
 : 'Encryption Local'
 function mark-encode-local() {
   file=$1
+  if [ ! -z "$2" ]
+    then
+    fileout=$2
+    else
+    fileout=$file.enc
+  fi
   generate_secret $MARK_ECPR $MARK_ECPU $file.secret
   use_secret_to_encrypt $file $file.secret
-  generate_hmac $file.enc $file.secret.hmac $file.secret
-  mark-cleanup
+  generate_hmac $fileout $file.secret.hmac $file.secret
 }
 
 
@@ -48,11 +55,20 @@ function mark-decode-local() {
   generate_secret $MARK_ECPR $MARK_ECPU ${filecry}.secret
   # compare hmac
   use_secret_to_decrypt  $filecry  ${filecry/.enc/} ${filecry}.secret
-  mark-cleanup
 }
 
 function mark-cleanup(){
   for entry in ./*
+  do
+    if [[ $entry == *".secret"* ]]; then
+      rm -rf $entry
+    fi
+  done
+}
+
+
+function mark-cleanup-hidden(){
+  for entry in ./.*
   do
     if [[ $entry == *".secret"* ]]; then
       rm -rf $entry
@@ -89,7 +105,7 @@ function generate_secret(){
 function use_secret_to_encrypt(){
   file=$1
   secret=$2
-  openssl enc -aes-256-cbc -in $file -out ${file}.enc -pass file:$secret
+  openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -in $file -out ${file}.enc -pass file:$secret
 }
 
 function generate_ec_public_key(){
